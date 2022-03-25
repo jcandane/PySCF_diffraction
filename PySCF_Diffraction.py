@@ -70,6 +70,23 @@ def get_diffpattern(mol, detector, D_sαβ):
 
     return I_q
 
+def diffpatternX(mol, D, detector, dQ=0.01, exact=True):
+
+    R, A, B, AOi = molcoefficients(mol, exact=exact)
+    S    = mol.intor("int1e_ovlp")
+
+    Q  = np.arange(0., int( np.linalg.norm(detector.q[0]) + 1 ), dQ) ##np.max( np.linalg.norm( detector2.q , axis=1) )
+    f_Q = np.zeros((len(Q), len(S), len(S)))
+    for i in range(len(Q)):
+        f_Q[i] = getf_q(A, B, AOi, np.array([Q[i],0.,0.]), exact=True)
+
+    ## given q (magnitude) find 2d array.
+    q  = np.linalg.norm(detector.q, axis=1)
+    q *= 1/dQ
+    N, dx = q.astype(int), q-(q).astype(int)
+    
+    return np.einsum("sAB, BC, qCD, qDE -> q", D, S, f_Q[N] + (f_Q[N+1] - f_Q[N] ) * dx[:,None,None], np.cos(np.einsum("qx, xAB -> qAB", detector.q, R)))
+
 
 class diffraction_detector(object):
     ''' A class of diffraction detector instrament '''
